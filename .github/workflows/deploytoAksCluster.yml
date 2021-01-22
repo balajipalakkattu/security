@@ -1,0 +1,50 @@
+on: [push]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    
+    - uses: azure/docker-login@v1
+      with:
+        login-server: acrdemokube.azurecr.io
+        username: ${{ secrets.acr_acrdemokube_username }}
+        password: ${{ secrets.acr_acrdemokube_password }}
+    
+    - name: Build and push image to ACR
+      id: build-image
+      run: |
+        docker build "$GITHUB_WORKSPACE/src/main/resources" -f  "src/main/resources/DockerFile" -t acrdemokube.azurecr.io/demokubeksc:${{ github.sha }}
+        docker push acrdemokube.azurecr.io/demokubeksc:${{ github.sha }}
+    
+    - uses: azure/k8s-set-context@v1
+      with:
+         kubeconfig: ${{ secrets.aks_demokubeksc_kubeConfig }}
+      id: login
+    
+    - name: Create namespace
+      run: |
+        namespacePresent=`kubectl get namespace | grep demokubeksc1244 | wc -l`
+        if [ $namespacePresent -eq 0 ]
+        then
+            echo `kubectl create namespace demokubeksc1244`
+        fi
+
+    - uses: azure/k8s-create-secret@v1
+      with:
+        namespace: demokubeksc1244
+        container-registry-url: acrdemokube.azurecr.io
+        container-registry-username: ${{ secrets.acr_acrdemokube_username }}
+        container-registry-password: ${{ secrets.acr_acrdemokube_password }}
+        secret-name: demokubekscdockerauth
+       
+    - uses: azure/k8s-deploy@v1.2
+      with:
+        namespace: demokubeksc1244
+        manifests: |
+          manifests/deployment.yml
+          manifests/service.yml
+        images: |
+          acrdemokube.azurecr.io/demokubeksc:${{ github.sha }}
+        imagepullsecrets: |
+          demokubekscdockerauth
