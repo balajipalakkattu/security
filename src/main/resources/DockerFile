@@ -1,0 +1,7 @@
+ARG jarFileName
+EXPOSE 8080
+COPY $jarFileName /home/app.jar
+COPY init_container.sh /home/init_container.sh
+COPY setenv.sh /home/.
+RUN chmod 755 /home/init_container.sh
+ENTRYPOINT ["/home/init_container.sh"]
