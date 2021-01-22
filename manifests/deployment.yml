@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: "demokubeksc-68a7"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: "demokubeksc-68a7"
+  template:
+    metadata:
+      labels:
+        app: "demokubeksc-68a7"
+    spec:
+      containers:
+        - name: "demokubeksc-68a7"
+          image: "acrdemokube.azurecr.io/demokubeksc"
+          ports:
+          - containerPort: 8080
